@@ -20,17 +20,10 @@ proc transform7(x, loop: int): int =
     result = transform7((7 * x) mod 20201227, loop - 1)
   cache[x] = (loop, result)
 
-var
-  loops: array[2, int]
-  loop = 1
+var loop = 1
 while true:
   let x = transform7(1, loop)
   for i in 0..1:
     if x == keys[i]:
-      loops[i] = loop
-  if loops[0] != 0 and loops[1] != 0:
-    break
+      quit($transform(keys[1-i], loop), 0)
   inc loop
-
-assert transform(keys[0], loops[1]) == transform(keys[1], loops[0])
-echo transform(keys[1], loops[0])
