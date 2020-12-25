@@ -1,0 +1,113 @@
+A solution by someone on the internet...
+
+Usage: cat adv19b.txt | ./adv19-golf.pl
+
+(Comment out line 3 for part 1.)
+
+Line 1:
+-------
+
+#!perl -ln
+
+  -l switch: clears endline symbols
+  -n switch: processes the input line by line
+
+Line 2:
+-------
+
+use re 'eval'
+
+  normal regexps are extended with:
+  - (?{ ... })  zero-width assertion
+  - (??{ ... }) postponed subexpressions
+
+END { print $x }
+  prints the value of x before quitting
+  (semicolon is optional at the end of a block)
+
+Line 3:
+-------
+
+$_.="+"x/^8:/."|42 11 31"x/^11:/;
+
+  $_ is the current line, the default variable in pattern matching
+  .= is concatenation & assignment (like +=)
+  "+" is just a string
+  x is repetition ("A" x 3 = "AAA")
+  /^8:/ is regexp for starting with 8:
+  . is concatenation
+  "|42 11 31" is just a string
+  x is repetition ("A" x 3 = "AAA")
+  /^11:/ is regexp for starting with 11:
+  ; end of statement
+
+... so this uses the fact that regexp searches can be treated
+as scalars - no match is 0, a match is 1.
+
+Interestingly, this does the following:
+
+8: 42 => 8: 42+
+11: 42 31 => 11: 42 31|42 11 31
+
+Note that the first line is not changed to
+  8: 42 | 42 8
+as in the specification, but the meaning is obviously the same.
+
+Line 4:
+-------
+
+$p=$&,s/\d+/(??{\$m[$&]})/g,y/ "//d,$m[$p]="($_)"if s/\d+://;$x+=/^$m[0]$/
+
+  $p is a variable
+  = is assignment
+  $& is the matching string from the last regex
+  , combines expressions into a single statement
+  s/\d+/(??{\$m[$&]})/g  is a regexp for replacing a string of digits with...
+                         (??{ ... }) evaluates the expression and matches to that
+                         \$m[$&] evaluates to $m[...] (where the index is the last matched string)
+                         g is to do that globally, i.e., each time it occurs
+  , combines expressions into a single statement
+  y/ "//d   is a transliteration (same as tr///), d means to delete (here: all spaces and quotes)
+  , combines expressions into a single statement
+  $m[$p] is the p-th element of the m array
+  = is assignment
+  "($_)" the line between parentheses
+  if s/\d+://  postfix if (only when digits+colon matched, and then those are deleted)
+  ; end of statement marker
+  $x is a variable
+  += addition & assigment
+  /^$m[0]$/  searches for a full match of the 0-th element of the m array (^:beginning, $:end)
+
+In other words,
+I) If it finds digits and a colon:
+  1. Puts the head number in p
+  2. Changes every other number X on the line to (??{$m[X]})
+  3. Deletes all spaces and quotation marks
+  4. Sets the p-th element of array m to the whole (changed) line between parentheses
+  5. Deletes the head number and colon
+II) For all strings it tries to match $m[0], and counts the successes.
+
+So this converts a rule like
+  1: 2 3 | 4
+to
+  ((??{$m[2]})(??{$m[3]})|(??{$m[4]}))
+and puts it in $m[1] etc.
+
+Expanded:
+---------
+
+#!perl -ln
+use re 'eval';
+
+END {
+    print $x
+}
+
+$_ .= "+" x /^8:/ . "|42 11 31" x /^11:/;
+
+$p = $&,
+s/\d+/(??{\$m[$&]})/g,
+y/ "//d,
+$m[$p] = "($_)" if s/\d+://;
+
+$x += /^$m[0]$/
